@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex.surf 开发文档 - 高效、稳定的 GPT 接口</title>
+    <meta name="description" content="Codex.surf 官方使用教程。提供稳定、高并发的 GPT 模型 API 分发服务，兼容 OpenAI 格式。">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-bg: linear-gradient(135deg, #e0f2fe 0%, #fce7f3 100%);
+            --sidebar-width: 280px;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            --border-color: rgba(226, 232, 240, 0.6);
+            --content-bg: rgba(255, 255, 255, 0.75);
+            --code-bg: #1e1e1e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--primary-bg);
+            background-attachment: fixed;
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .layout-wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        /* Glassmorphism Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1.5rem;
+            overflow-y: auto;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            background: linear-gradient(to right, #0ea5e9, #ec4899);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-group-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            color: var(--text-main);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--accent);
+        }
+
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--accent);
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 3rem 4rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .content-container {
+            width: 100%;
+            max-width: 950px;
+            background: var(--content-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+            letter-spacing: -1px;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-top: 3rem;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            font-size: 1rem;
+            color: #334155;
+        }
+
+        /* Buttons & CTA */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: white;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+        }
+
+        /* Important block for CTA */
+        .conversion-box {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(24ce7f3, 0.4) 100%);
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin: 2rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .conversion-box h3 {
+            margin-top: 0;
+            color: var(--accent);
+        }
+
+        /* Code Blocks */
+        .code-block-wrapper {
+            position: relative;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--code-bg);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #94a3b8;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            color: #db2777;
+        }
+
+        pre code {
+            background: transparent;
+            padding: 0;
+            color: #e2e8f0;
+            line-height: 1.5;
+        }
+
+        /* Lists */
+        ul,
+        ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+            color: #334155;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Content Links */
+        .content-container a:not(.btn-primary) {
+            color: #0ea5e9;
+            text-decoration: underline;
+            text-decoration-color: rgba(14, 165, 233, 0.3);
+            text-underline-offset: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .content-container a:not(.btn-primary):hover {
+            color: #ec4899;
+            text-decoration-color: rgba(236, 72, 153, 0.6);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .content-container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .floating-btn {
+            position: fixed;
+            top: 1.5rem;
+            right: 2rem;
+            z-index: 1000;
+            padding: 0.6rem 1.25rem;
+            background: linear-gradient(135deg, #0ea5e9, #ec4899);
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+            color: white;
+        }
+
+        .vp-doc h1 {
+            font-size: 2.2rem;
+        }
+
+        .vp-doc h2 {
+            font-size: 1.6rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .vp-doc h3 {
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+        }
+
+        .vp-doc img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin: 1rem 0;
+        }
+
+        .vp-doc div[class*="language-"] {
+            position: relative;
+            background: var(--code-bg);
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .vp-doc div[class*="language-"] pre {
+            background: transparent;
+            margin: 0;
+            padding: 2.5rem 1rem 1rem 1rem;
+            overflow-x: auto;
+            color: white;
+            border-radius: 0;
+        }
+
+        .vp-doc .lang {
+            position: absolute;
+            top: 0.5rem;
+            left: 1rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-family: monospace;
+            text-transform: uppercase;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .vp-doc .copy {
+            position: absolute;
+            top: 0.4rem;
+            right: 0.6rem;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #94a3b8;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .vp-doc .copy::before {
+            content: "复制";
+        }
+
+        .vp-doc .copy:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .vp-doc .copy.copied {
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+
+        .vp-doc .copy.copied::before {
+            content: "已复制!";
+        }
+
+        .vp-doc .language-bash,
+        .vp-doc .language-sh,
+        .vp-doc .language-json {
+            font-family: 'Consolas', monospace;
+        }
+
+        .vp-doc p {
+            line-height: 1.6;
+        }
+
+        .vp-doc ul,
+        .vp-doc ol {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .vp-doc li {
+            margin-bottom: 0.5rem;
+        }
+
+        .vp-doc table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .vp-doc th,
+        .vp-doc td {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        /* Fix images that start with / to the absolute URL */
+    </style>
+
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <a href="https://codex.surf/" target="_blank" class="floating-btn">Codex.surf 主站</a>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <a href="#" class="logo">
+                <span>Codex.surf</span> 文档
+            </a>
+
+            <div class="nav-group">
+                <div class="nav-group-title">概览</div>
+                <a href="#intro" class="nav-link active">Codex.surf 简介</a>
+                <a href="#get-started" class="nav-link">获取 API Key</a>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-group-title">配置教程</div>
+                <a href="#codex" class="nav-link">Codex 部署指南（必看）</a>
+                <a href="#cherry" class="nav-link">Cherry Studio 配置</a>
+                <a href="#cc-switch" class="nav-link">CC-Switch 使用</a>
+                <a href="#openclaw" class="nav-link">OpenClaw 配置</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-container">
+
+                <!-- Intro (30% Conversion) -->
+                <section id="intro">
+                    <h1>Codex.surf 开发者文档</h1>
+                    <p>欢迎来到 Codex.surf 的官方文档中心。这里为您提供了详尽的 API 接入指南，帮助您在几分钟内轻松连接并调用强大的 GPT 模型。</p>
+
+                    <div class="conversion-box">
+                        <h3>为什么选择 Codex.surf？</h3>
+                        <p>Codex.surf 是一家专注于提供 <strong>稳定、高并发、高性价比的 GPT 模型 API 分发服务</strong>平台。我们致力于为个人开发者与企业团队提供卓越的 AI
+                            基础设施体验。</p>
+                        <ul>
+                            <li><strong>极致稳定：</strong> 我们拥有可靠的可用性保障，通过智能路由与企业级网关设计，确保您的调用不会中断。</li>
+                            <li><strong>原生兼容：</strong> 完全兼容 OpenAI 的官方 SDK 格式，无需更改代码逻辑结构，改个 URL 就能无缝迁移。</li>
+                            <li><strong>透明消费：</strong> 不设隐形消费，所有 Tokens 消耗一目了然，极致性价比。</li>
+                        </ul>
+                        <a href="https://codex.surf/" target="_blank" class="btn-primary" style="margin-top: 0.5rem;">
+                            立即前往主站注册获取额度
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Quick Start (70% Connection Tutorial) -->
+                <section id="get-started">
+                    <h2>1. 快速获取 API 密钥</h2>
+                    <p>要开始调用我们的 GPT 服务，您需要首先在控制台生成专属的 API 密钥 (Auth Token)。</p>
+                    <p>访问 <a href="https://codex.surf/" target="_blank">Codex.surf 控制台</a> 进行以下操作：</p>
+                    <ul>
+                        <li>点击 <strong>「添加令牌」</strong></li>
+                        <li><strong>名称:</strong> 随便填写方便自己区分即可</li>
+                        <li><strong>令牌分组:</strong> 根据实际需要选择, 分组有详细描述（必填项，不能留空）</li>
+                        <li><strong>额度建议:</strong> 设置为无限额度</li>
+                        <li>其他选项保持默认</li>
+                    </ul>
+                    <p style="margin-top: 1rem; color: #db2777;">*注意：生成的 <code>sk-xxxxxx</code>
+                        格式字符串就是您的专属密钥，请妥善保管，切勿泄露给他人。</p>
+                </section>
+
+                <!-- New Tutorials -->
+                <section id="codex">
+                    <div style="position:relative;" class="vp-doc _codex" data-v-39a288b8>
+                        <div>
+                            <h1 id="codex-部署指南" tabindex="-1">CodeX 部署指南 </h1>
+                            <p>CodeX 是 OpenAI 基于 GPT-5 架构推出的代码生成与优化 CLI 工具，为开发者提供强大的编程辅助能力。</p>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">快速导航</p>
+                                    <ul>
+                                        <li><a href="#前置要求">前置要求</a></li>
+                                        <li><a href="#安装-node-js">安装 Node.js</a></li>
+                                        <li><a href="#获取-codex-专用令牌">获取 CodeX 专用令牌</a></li>
+                                        <li><a href="#方式一-使用-cc-switch-快速配置-推荐">方式一：使用 CC-Switch 快速配置（推荐）</a></li>
+                                        <li><a href="#方式二-手动命令行配置">方式二：手动命令行配置</a>
+                                            <ul>
+                                                <li><a href="#windows-平台">Windows 平台</a></li>
+                                                <li><a href="#macos-linux-平台">macOS / Linux 平台</a></li>
+                                            </ul>
+                                        </li>
+                                        <li><a href="#常见问题">常见问题</a></li>
+                                    </ul>
+                            </div>
+                            <hr>
+                            <h2 id="前置要求" tabindex="-1">前置要求 </h2>
+                            <p>在开始之前，请确保已完成以下准备：</p>
+                            <ol>
+                                <li><strong>Node.js 环境</strong>：CodeX 通过 npm 安装，需要 Node.js 环境（见下方安装说明）</li>
+                                <li><strong>CC-Switch 工具</strong>（推荐）：请参考 <a href="./cc-switch.html">CC Switch 配置教程</a>
+                                    安装 CC-Switch</li>
+                            </ol>
+                            <hr>
+                            <h2 id="安装-node-js" tabindex="-1">安装 Node.js </h2>
+                            <p>CodeX 需要通过 npm 安装，因此必须先安装 Node.js。</p>
+                            <h3 id="⊞-windows" tabindex="-1">⊞ Windows </h3>
+                            <p><strong>方法一：使用官方安装包（推荐）</strong></p>
+                            <ol>
+                                <li>访问 <a href="https://nodejs.org/" target="_blank"
+                                        rel="noreferrer">https://nodejs.org</a></li>
+                                <li>下载 LTS 版本的 Windows Installer (.msi)</li>
+                                <li>运行安装程序，按默认设置完成安装</li>
+                                <li>安装程序会自动添加到 PATH 环境变量</li>
+                            </ol>
+                            <p><strong>方法二：使用包管理器</strong></p>
+                            <p>使用 <strong>Winget</strong>（Windows 11 或 Windows 10 自带）：</p>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">winget install OpenJS.NodeJS.LTS</span></span></code></pre>
+                            </div>
+                            <p>使用 <strong>Chocolatey</strong>：</p>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">choco install nodejs</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">lts</span></span></code></pre>
+                            </div>
+                            <p>使用 <strong>Scoop</strong>：</p>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">scoop install nodejs</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">lts</span></span></code></pre>
+                            </div>
+                            <h3 id="🍎-macos" tabindex="-1">🍎 macOS </h3>
+                            <p><strong>方法一：使用 Homebrew（推荐）</strong></p>
+                            <p>如果尚未安装 Homebrew：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">/bin/bash</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -c</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;$(</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">curl</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -fsSL</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;</span></span></code></pre>
+                            </div>
+                            <p>使用 Homebrew 安装 Node.js：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">brew</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> node</span></span></code></pre>
+                            </div>
+                            <p><strong>方法二：使用官方安装包</strong></p>
+                            <ol>
+                                <li>访问 <a href="https://nodejs.org/" target="_blank"
+                                        rel="noreferrer">https://nodejs.org</a></li>
+                                <li>下载 LTS 版本的 macOS Installer (.pkg)</li>
+                                <li>运行安装程序，按默认设置完成安装</li>
+                            </ol>
+                            <h3 id="🐧-linux" tabindex="-1">🐧 Linux </h3>
+                            <p><strong>Ubuntu/Debian：</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> apt</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> update</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">curl</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -fsSL</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> https://deb.nodesource.com/setup_lts.x</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> |</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> sudo</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -E</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> bash</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> -</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> apt-get</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -y</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> nodejs</span></span></code></pre>
+                            </div>
+                            <p><strong>CentOS/RHEL/Fedora：</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> dnf</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> nodejs</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> npm</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 或者</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> yum</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> nodejs</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> npm</span></span></code></pre>
+                            </div>
+                            <p><strong>Arch Linux：</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">sudo</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> pacman</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -S</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> nodejs</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> npm</span></span></code></pre>
+                            </div>
+                            <h3 id="验证安装" tabindex="-1">验证安装 </h3>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">node</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --version</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --version</span></span></code></pre>
+                            </div>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">提示</p>
+                                    <p>建议使用 LTS（长期支持）版本以获得最佳稳定性。安装完成后需重启命令行窗口。</p>
+                            </div>
+                            <hr>
+                            <h2 id="获取-codex-专用令牌" tabindex="-1">获取 CodeX 专用令牌 </h2>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">重要提示</p>
+                                    <p>CodeX 和 Claude Code 使用不同的令牌分组，两者不通用！请务必选择 CodeX 对应的令牌分组。</p>
+                            </div>
+                            <p>访问 <a href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf API 控制台</a>
+                                进行以下操作：</p>
+                            <ul>
+                                <li>点击「添加令牌」</li>
+                                <li>名称：随便填写方便自己区分即可</li>
+                                <li><strong>令牌分组：根据实际需要选择，分组有详细描述</strong>（必填项，不能留空）</li>
+                                <li>额度建议：设置为无限额度</li>
+                                <li>其他选项保持默认</li>
+                            </ul>
+                            <p>创建成功后，<strong>复制令牌备用</strong>。</p>
+                            <hr>
+                            <h2 id="方式一-使用-cc-switch-快速配置-推荐" tabindex="-1">方式一：使用 CC-Switch 快速配置（推荐） </h2>
+                            <h3 id="_1-全局安装-codex" tabindex="-1">1. 全局安装 CodeX </h3>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> @openai/codex@latest</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">codex</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --version</span></span></code></pre>
+                            </div>
+                            <h3 id="_2-使用-cc-switch-配置" tabindex="-1">2. 使用 CC-Switch 配置 </h3>
+                            <ol>
+                                <li>启动 CC-Switch，切换到 <strong>Codex</strong> 标签</li>
+                                <li>点击「+」按钮添加新配置</li>
+                                <li>填写提供商信息： <ul>
+                                        <li><strong>提供商名称</strong>：自定义（如「Codex.surf」）</li>
+                                        <li><strong>Base URL</strong>：<code>https://api.codex.surf/v1</code></li>
+                                        <li><strong>API Key</strong>：粘贴上一步获取的 CodeX 专用令牌</li>
+                                        <li><strong>Model</strong>：<code>gpt-5-codex</code></li>
+                                    </ul>
+                                </li>
+                                <li>保存并启用配置</li>
+                            </ol>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">提示</p>
+                                    <p>也可以在 Codex.surf 控制台的令牌管理中，使用一键导入功能将配置自动导入到 CC-Switch。</p>
+                            </div>
+                            <h3 id="_3-验证配置" tabindex="-1">3. 验证配置 </h3>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">mkdir</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> my-codex-project</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">cd</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> my-codex-project</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">codex</span></span></code></pre>
+                            </div>
+                            <p>输入任意问题，如果能正常收到回复，说明配置成功。</p>
+                            <hr>
+                            <h2 id="方式二-手动命令行配置" tabindex="-1">方式二：手动命令行配置 </h2>
+                            <h3 id="windows-平台" tabindex="-1">Windows 平台 </h3>
+                            <h4 id="_1-安装-codex-cli" tabindex="-1">1. 安装 CodeX CLI </h4>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">npm install </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">g @openai</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">codex@latest</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">codex </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">--</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">version</span></span></code></pre>
+                            </div>
+                            <h4 id="_2-创建配置目录" tabindex="-1">2. 创建配置目录 </h4>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">mkdir </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">USERPROFILE</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">\.codex</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">cd </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">USERPROFILE</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">%</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">\.codex</span></span></code></pre>
+                            </div>
+                            <h4 id="_3-创建配置文件" tabindex="-1">3. 创建配置文件 </h4>
+                            <p>在 <code>%USERPROFILE%\.codex\</code> 目录下创建 <code>config.toml</code> 文件，内容如下：</p>
+                            <div class="language-toml vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">toml</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model_provider = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Codex.surf&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;gpt-5.3-codex&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model_reasoning_effort = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;xhigh&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">network_access = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;enabled&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">disable_response_storage = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">approval_policy = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;on-request&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">web_search = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;live&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">sandbox_mode = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;danger-full-access&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">collaboration_mode = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model_supports_reasoning_summaries = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">model_providers</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Codex.surf</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">name = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Codex.surf&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">base_url = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;https://api.codex.surf/v1&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">wire_api = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;responses&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">requires_openai_auth = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">features</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">shell_snapshot = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">collab = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span></span></code></pre>
+                            </div>
+                            <h4 id="_4-创建认证文件" tabindex="-1">4. 创建认证文件 </h4>
+                            <p>在同一目录下创建 <code>auth.json</code> 文件：</p>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">重要提示</p>
+                                    <p>请将下方的 API Key 替换为您在 <a href="#获取-codex-专用令牌">获取令牌</a> 步骤中复制的 CodeX 专用令牌！</p>
+                            </div>
+                            <div class="language-json vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">json</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;OPENAI_API_KEY&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;此处粘贴您的 CodeX 专用令牌&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre>
+                            </div>
+                            <h4 id="_5-初始化工作空间" tabindex="-1">5. 初始化工作空间 </h4>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">mkdir my</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">codex</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">project</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">cd my</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">codex</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">project</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">codex</span></span></code></pre>
+                            </div>
+                            <hr>
+                            <h3 id="macos-linux-平台" tabindex="-1">macOS / Linux 平台 </h3>
+                            <h4 id="_1-安装-codex-cli-1" tabindex="-1">1. 安装 CodeX CLI </h4>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> @openai/codex@latest</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">codex</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --version</span></span></code></pre>
+                            </div>
+                            <h4 id="_2-创建配置目录-1" tabindex="-1">2. 创建配置目录 </h4>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">mkdir</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -p</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> ~/.codex</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">cd</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> ~/.codex</span></span></code></pre>
+                            </div>
+                            <h4 id="_3-创建配置文件-1" tabindex="-1">3. 创建配置文件 </h4>
+                            <p>在 <code>~/.codex/</code> 目录下创建 <code>config.toml</code> 文件，内容如下：</p>
+                            <div class="language-toml vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">toml</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model_provider = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Codex.surf&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;gpt-5.3-codex&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model_reasoning_effort = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;xhigh&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">network_access = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;enabled&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">disable_response_storage = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">approval_policy = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;on-request&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">web_search = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;live&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">sandbox_mode = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;danger-full-access&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">collaboration_mode = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">model_supports_reasoning_summaries = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">model_providers</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">.</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">Codex.surf</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">name = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Codex.surf&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">base_url = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;https://api.codex.surf/v1&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">wire_api = </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;responses&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">requires_openai_auth = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">[</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">features</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">shell_snapshot = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">true</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">collab = </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">false</span></span></code></pre>
+                            </div>
+                            <h4 id="_4-创建认证文件-1" tabindex="-1">4. 创建认证文件 </h4>
+                            <p>在同一目录下创建 <code>auth.json</code> 文件：</p>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">重要提示</p>
+                                    <p>请将下方的 API Key 替换为您在 <a href="#获取-codex-专用令牌">获取令牌</a> 步骤中复制的 CodeX 专用令牌！</p>
+                            </div>
+                            <div class="language-json vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">json</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;OPENAI_API_KEY&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;此处粘贴您的 CodeX 专用令牌&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre>
+                            </div>
+                            <h4 id="_5-初始化工作空间-1" tabindex="-1">5. 初始化工作空间 </h4>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">mkdir</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> my-codex-project</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">cd</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> my-codex-project</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">codex</span></span></code></pre>
+                            </div>
+                            <hr>
+                            <h2 id="常见问题" tabindex="-1">常见问题 </h2>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>问题</th>
+                                        <th>解答</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>CodeX 和 Claude Code 的令牌通用吗？</td>
+                                        <td>不通用。Claude Code 使用 Claude 令牌组，CodeX 使用 CodeX 专用令牌组，请在 Codex.surf
+                                            控制台选择对应的令牌分组。</td>
+                                    </tr>
+                                    <tr>
+                                        <td>配置文件放在哪里？</td>
+                                        <td>Windows：<code>%USERPROFILE%\.codex\</code>；macOS /
+                                            Linux：<code>~/.codex/</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>API 请求失败怎么办？</td>
+                                        <td>检查 API Key 是否正确，Base URL 是否为
+                                            <code>https://api.codex.surf/v1</code>，以及网络是否可以正常访问 Codex.surf</td>
+                                    </tr>
+                                    <tr>
+                                        <td>如何切换模型？</td>
+                                        <td>修改 <code>config.toml</code> 中的 <code>model</code> 字段即可，可用模型请查看 <a
+                                                href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf
+                                                模型广场</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p><strong>可用模型</strong>：访问 <a href="https://codex.surf/" target="_blank"
+                                    rel="noreferrer">Codex.surf 模型广场</a> 查看所有可用模型。</p>
+                        </div>
+                    </div>
+                </section>
+                <hr style="margin: 4rem 0; border: 0; border-top: 1px solid rgba(0,0,0,0.1);">
+                <section id="cherry">
+                    <div style="position:relative;" class="vp-doc _cherry-studio" data-v-39a288b8>
+                        <div>
+                            <h1 id="🍒-cherry-studio-配置-codex-surf-教程" tabindex="-1">🍒 Cherry Studio 配置 Codex.surf 教程
+                            </h1>
+                            <p>Cherry Studio 是一款强大的 AI 桌面客户端，支持多种大语言模型。本教程将指导你如何在 Cherry Studio 中配置 Codex.surf API，使用各种
+                                AI 模型。</p>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">快速导航</p>
+                                    <ul>
+                                        <li><a href="#方式一-一键导入-推荐">方式一：一键导入（推荐）</a></li>
+                                        <li><a href="#方式二-手动配置">方式二：手动配置</a>
+                                            <ul>
+                                                <li><a href="#步骤-1-进入设置">步骤 1：进入设置</a></li>
+                                                <li><a href="#步骤-2-添加供应商">步骤 2：添加供应商</a></li>
+                                                <li><a href="#步骤-3-选择提供商类型">步骤 3：选择提供商类型</a></li>
+                                                <li><a href="#步骤-4-获取并配置-api-密钥">步骤 4：获取并配置 API 密钥</a></li>
+                                                <li><a href="#步骤-5-获取模型名称">步骤 5：获取模型名称</a></li>
+                                                <li><a href="#步骤-6-添加模型">步骤 6：添加模型</a></li>
+                                                <li><a href="#步骤-7-测试模型">步骤 7：测试模型</a></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                            </div>
+                            <hr>
+                            <h2 id="方式一-一键导入-推荐" tabindex="-1">方式一：一键导入（推荐） </h2>
+                            <p>Codex.surf 控制台支持一键导入配置到 Cherry Studio，无需手动填写 API 地址和密钥。</p>
+                            <ol>
+                                <li>访问 <a href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf 控制台 -
+                                        令牌管理</a></li>
+                                <li>找到你要使用的令牌，点击右侧的「聊天」下拉菜单</li>
+                                <li>选择 <strong>Cherry Studio</strong>，即可自动将 API 配置导入到 Cherry Studio</li>
+                            </ol>
+                            <p><img src="https://docs.xcode.best/assets/1.qAeWK6cS.png" alt="一键导入 Cherry Studio"></p>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">提示</p>
+                                    <p>一键导入会自动配置 API 地址和密钥，导入后只需在 Cherry Studio 中添加所需模型即可开始使用。</p>
+                            </div>
+                            <hr>
+                            <h2 id="方式二-手动配置" tabindex="-1">方式二：手动配置 </h2>
+                            <p>如果一键导入不可用，也可以按照以下步骤手动配置。</p>
+                            <hr>
+                            <h2 id="步骤-1-进入设置" tabindex="-1">步骤 1：进入设置 </h2>
+                            <p>打开 Cherry Studio，点击左下角的 <strong>设置图标</strong>（齿轮图标）进入设置页面。</p>
+                            <p><img src="https://docs.xcode.best/assets/2.Cn-5HVR3.png" alt="进入设置"></p>
+                            <hr>
+                            <h2 id="步骤-2-添加供应商" tabindex="-1">步骤 2：添加供应商 </h2>
+                            <p>在设置页面中，找到 <strong>模型服务商</strong> 区域，点击 <strong>添加</strong> 按钮来添加新的 API 供应商。</p>
+                            <p><img src="https://docs.xcode.best/assets/3.CeBZWPaK.png" alt="添加供应商"></p>
+                            <hr>
+                            <h2 id="步骤-3-选择提供商类型" tabindex="-1">步骤 3：选择提供商类型 </h2>
+                            <p>在弹出的添加供应商窗口中，<strong>提供商类型</strong> 选择 <strong>OpenAI API</strong>。</p>
+                            <p><img src="https://docs.xcode.best/assets/4.DwUc5Ipc.png" alt="选择提供商类型"></p>
+                            <hr>
+                            <h2 id="步骤-4-获取并配置-api-密钥" tabindex="-1">步骤 4：获取并配置 API 密钥 </h2>
+                            <h3 id="_4-1-进入令牌管理" tabindex="-1">4.1 进入令牌管理 </h3>
+                            <p>访问 <a href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf
+                                    控制台</a>，在左侧菜单中找到 <strong>令牌管理</strong>，点击 <strong>添加令牌</strong> 按钮。</p>
+                            <p><img src="https://docs.xcode.best/assets/5.B0JWbjTH.png" alt="控制台-令牌管理-添加令牌"></p>
+                            <h3 id="_4-2-创建新令牌" tabindex="-1">4.2 创建新令牌 </h3>
+                            <p>在创建令牌页面中：</p>
+                            <ul>
+                                <li>名称：随便填写，方便自己区分即可</li>
+                                <li><strong>令牌分组：根据实际需要选择，分组有详细描述（必填项，不能留空）</strong></li>
+                                <li>额度建议：设置为无限额度</li>
+                            </ul>
+                            <p><img src="https://docs.xcode.best/assets/6.DOV8J_AM.png" alt="创建新的令牌-选择令牌分组"></p>
+                            <h3 id="_4-3-复制令牌" tabindex="-1">4.3 复制令牌 </h3>
+                            <p>令牌创建成功后，在令牌管理列表中找到刚创建的令牌，点击 <strong>复制</strong> 按钮复制 API 密钥。</p>
+                            <p><img src="https://docs.xcode.best/assets/7.CPrWdntX.png" alt="令牌管理-复制令牌"></p>
+                            <h3 id="_4-4-填写-api-密钥和地址" tabindex="-1">4.4 填写 API 密钥和地址 </h3>
+                            <p>回到 Cherry Studio 的供应商配置页面，填写以下信息：</p>
+                            <ul>
+                                <li><strong>API 密钥</strong>：粘贴刚才复制的令牌</li>
+                                <li><strong>API 地址</strong>：<code>https://codex.surf</code></li>
+                            </ul>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">重要提示</p>
+                                    <p>API 地址必须填写 <code>https://codex.surf</code>，请勿遗漏或填错！</p>
+                            </div>
+                            <p><img src="https://docs.xcode.best/assets/8.DuJIkL5x.png" alt="填写API密钥地址"></p>
+                            <hr>
+                            <h2 id="步骤-5-获取模型名称" tabindex="-1">步骤 5：获取模型名称 </h2>
+                            <p>访问 <a href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf
+                                    模型广场</a>，找到你想使用的模型，点击 <strong>复制</strong> 按钮复制模型名称。</p>
+                            <p><img src="https://docs.xcode.best/assets/9.CN0juy_8.png" alt="模型广场-复制模型名称"></p>
+                            <hr>
+                            <h2 id="步骤-6-添加模型" tabindex="-1">步骤 6：添加模型 </h2>
+                            <p>回到 Cherry Studio，在供应商配置页面中点击 <strong>添加模型</strong> 按钮（+ 号）。</p>
+                            <p><img src="https://docs.xcode.best/assets/10.DB0yqiIQ.png" alt="Cherry Studio 添加模型"></p>
+                            <p>在弹出的窗口中，粘贴从模型广场复制的模型名称，然后点击 <strong>确认</strong> 提交。</p>
+                            <p><img src="https://docs.xcode.best/assets/11.BJ32yeDw.png" alt="复制模型名称-提交"></p>
+                            <hr>
+                            <h2 id="步骤-7-测试模型" tabindex="-1">步骤 7：测试模型 </h2>
+                            <p>配置完成后，回到 Cherry Studio 的对话界面，选择刚才添加的模型，发送一条消息进行测试。</p>
+                            <p><img src="https://docs.xcode.best/assets/12.DIMQwFpQ.png" alt="CherryStudio测试模型"></p>
+                            <p>如果模型正常返回回复，说明配置成功！</p>
+                            <p><img src="https://docs.xcode.best/assets/13.Bn154kd3.png" alt="CherryStudio测试模型-成功"></p>
+                        </div>
+                    </div>
+                </section>
+                <hr style="margin: 4rem 0; border: 0; border-top: 1px solid rgba(0,0,0,0.1);">
+                <section id="cc-switch">
+                    <div style="position:relative;" class="vp-doc _cc-switch" data-v-39a288b8>
+                        <div>
+                            <p>CC Switch 是一款强大的跨平台 API 供应商切换与管理工具，最初为 Claude Code 设计，现已扩展支持 Codex、Gemini CLI、OpenCode 和
+                                OpenClaw 等多个开发工具前端。</p>
+                            <h2 id="下载与安装" tabindex="-1">下载与安装 <a href="#下载与安装"></a> </h2>
+                            <h3 id="步骤-1-下载软件" tabindex="-1">步骤 1：下载软件 <a href="#download"></a> </h3>
+                            <p>INFO</p>
+                            <p>前往 Github Release 页面下载最新的安装包：<a href="https://github.com/farion1231/cc-switch/releases"
+                                    target="_blank"
+                                    rel="noreferrer">https://github.com/farion1231/cc-switch/releases</a> Windows 用户推荐下载
+                                <code>.msi</code> 格式的安装包，以支持自动更新功能。</p>
+                            <p><img src="https://docs.xcode.best/assets/01-download-release.CdKJSji1.png" alt=""></p>
+                            <h3 id="步骤-2-安装软件" tabindex="-1">步骤 2：安装软件 <a href="#install"></a> </h3>
+                            <p>INFO</p>
+                            <p>运行下载的安装包进行安装。如果 Windows 弹出“Windows 已保护你的电脑”的 SmartScreen
+                                拦截提示，请点击左侧的**“更多信息”<strong>，然后点击右下角的</strong>“仍要运行”**即可正常安装。</p>
+                            <p><img src="https://docs.xcode.best/assets/02-run-installer.uIXirErT.png" alt=""><img
+                                    src="https://docs.xcode.best/assets/03-windows-smartscreen.lXQ0-Xg1.png" alt=""></p>
+                            <h2 id="通用配置步骤" tabindex="-1">通用配置步骤 <a href="#通用配置步骤"></a> </h2>
+                            <h3 id="步骤-1-进入设置面板" tabindex="-1">步骤 1：进入设置面板 <a href="#general-settings"></a> </h3>
+                            <p>INFO</p>
+                            <p>首次打开软件后，点击左上角的“齿轮”图标，进入 CC Switch 的全局设置页面。</p>
+                            <p><img src="https://docs.xcode.best/assets/04-open-settings.Kk23S-Lk.png" alt=""></p>
+                            <h3 id="步骤-2-开启插件接管" tabindex="-1">步骤 2：开启插件接管 <a href="#enable-takeover"></a> </h3>
+                            <p>INFO</p>
+                            <p>在设置页面的“通用”选项卡中，找到并开启 <strong>“应用到 XXX 插件”</strong>（例如应用到 Claude Code 插件）开关，这样当你在 CC
+                                Switch 切换供应商时，对应的终端工具配置才会生效。你可以顺便开启“开机自启”。</p>
+                            <p><img src="https://docs.xcode.best/assets/05-enable-takeover.NnZlUhMZ.png" alt=""></p>
+                            <h3 id="步骤-3-添加供应商" tabindex="-1">步骤 3：添加供应商 <a href="#add-provider"></a> </h3>
+                            <p>INFO</p>
+                            <p>回到软件主界面，点击右上角的 <strong>“+”</strong> 加号图标，新建一个 API 供应商配置。</p>
+                            <p><img src="https://docs.xcode.best/assets/06-add-provider.CC0C0JaV.png" alt=""></p>
+                            <h3 id="步骤-4-填写-api-信息" tabindex="-1">步骤 4：填写 API 信息 <a href="#fill-provider"></a> </h3>
+                            <p>INFO</p>
+                            <p>如果你只打算在某个单独的应用中使用（比如只用在 Claude Code），那么直接在弹出的供应商编辑窗口中填写。</p>
+                            <ul>
+                                <li><strong>供应商名称：</strong> <code>Codex</code> （可自定义）</li>
+                                <li><strong>官网链接：</strong> <code>https://api.codex.surf</code> （选填）</li>
+                                <li><strong>API Key：</strong> 填入你在控制台获取的令牌</li>
+                                <li><strong>API 请求地址：</strong> <code>https://api.codex.surf/v1</code> （注意：因为图中使用的是兼容
+                                    OpenAI 格式，所以填带 <code>/v1</code> 的地址）</li>
+                                <li><strong>模型名称：</strong> 例如 <code>gpt-5.4</code></li>
+                            </ul>
+                            <p><img src="https://docs.xcode.best/assets/07-fill-provider-info.D2FRcFtG.png" alt=""></p>
+                            <h3 id="步骤-5-使用统一供应商-推荐" tabindex="-1">步骤 5：使用统一供应商 (推荐) <a href="#universal-provider"></a>
+                            </h3>
+                            <p>INFO</p>
+                            <p>由于 CC Switch v3.9.0 引入了 <strong>统一供应商（Universal Provider）</strong> 功能，如果你想一次配置就能在 Claude
+                                Code、Codex 和 Gemini CLI 之间无缝切换共享，强烈建议添加“统一供应商”。</p>
+                            <ol>
+                                <li>在添加供应商界面，点击顶部的 <strong>“统一供应商”</strong> 标签。</li>
+                                <li>点击下方的 <strong>“+ 添加统一供应商”</strong> 按钮。</li>
+                            </ol>
+                            <p><img src="https://docs.xcode.best/assets/08-universal-provider-tab.DVyNIO6F.png" alt="">
+                            </p>
+                            <p>INFO</p>
+                            <ol start="3">
+                                <li>选择预设类型（如 <strong>NewAPI</strong> 或 自定义网关）。</li>
+                                <li>依次填入 <strong>名称</strong>、<strong>API 地址</strong>
+                                    (<code>https://api.codex.surf</code>) 和 <strong>API Key</strong>。</li>
+                            </ol>
+                            <p><img src="https://docs.xcode.best/assets/09-universal-provider-form.Dt9EJ9vz.png" alt="">
+                            </p>
+                            <p>INFO</p>
+                            <ol start="5">
+                                <li>往下滚动，你可以勾选你想把这个配置同步应用到哪些 CLI 工具（Claude Code、Codex、Gemini CLI 等）。</li>
+                            </ol>
+                            <p><img src="https://docs.xcode.best/assets/10-sync-cli-tools.J7xQ_h7G.png" alt=""></p>
+                            <p>INFO</p>
+                            <ol start="6">
+                                <li>最后在底部为不同的工具指定默认的模型。比如为 Codex 映射 <code>gpt-5.4</code> 模型。全部填完后点击右下角的
+                                    <strong>“添加”</strong> 即可！</li>
+                            </ol>
+                            <p><img src="https://docs.xcode.best/assets/11-set-default-models.C34ppdki.png" alt=""></p>
+                            <hr>
+                            <h2 id="针对各应用的特定配置" tabindex="-1">针对各应用的特定配置 <a href="#针对各应用的特定配置"></a> </h2>
+                            <p>（如果你在上一步使用了“统一供应商”，对应的配置会自动同步。如果你是单独配置各个应用，请参考以下说明：）</p>
+                            <h3 id="claude-code-配置" tabindex="-1">Claude Code 配置 <a href="#claude-config"></a> </h3>
+                            <p>点击顶部标签的 <strong>Claude</strong> 图标。添加供应商时。模型名称建议填写按下图填写或填写你需要的模型。 点击添加以后请确认下是否启用。</p>
+                            <ul>
+                                <li><strong>供应商名称：</strong> <code>Codex</code> （可自定义）</li>
+                                <li><strong>官网链接：</strong> <code>https://api.codex.surf</code> （选填）</li>
+                                <li><strong>API Key：</strong> 填入你在控制台获取的令牌</li>
+                                <li><strong>API 请求地址：</strong> <code>https://api.codex.surf/v1</code></li>
+                                <li><strong>模型名称：</strong> 例如 <code>claude-opus-4-6</code></li>
+                            </ul>
+                            <p><img src="https://docs.xcode.best/assets/12-claude-provider.BjIhRFZ9.png" alt=""></p>
+                            <p><img src="https://docs.xcode.best/assets/13-claude-enable-provider.DncFwy6F.png" alt="">
+                            </p>
+                            <h3 id="codex-配置" tabindex="-1">Codex 配置 <a href="#codex-config"></a> </h3>
+                            <p>点击顶部标签的 <strong>Codex</strong> 图标。填写与上方通用配置相同的 URL 和 API Key。</p>
+                            <ul>
+                                <li><strong>供应商名称：</strong> <code>Codex</code> （可自定义）</li>
+                                <li><strong>官网链接：</strong> <code>https://api.codex.surf</code> （选填）</li>
+                                <li><strong>API Key：</strong> 填入你在控制台获取的令牌</li>
+                                <li><strong>API 请求地址：</strong> <code>https://api.codex.surf/v1</code></li>
+                                <li><strong>模型名称：</strong> 例如 <code>gpt-5.4</code></li>
+                            </ul>
+                            <p><img src="https://docs.xcode.best/assets/14-codex-provider.DhaU-O8B.png" alt=""></p>
+                            <h3 id="gemini-cli-配置" tabindex="-1">Gemini CLI 配置 <a href="#gemini-config"></a> </h3>
+                            <p>INFO</p>
+                            <p>点击顶部标签的 <strong>Gemini</strong> 图标。Gemini 官方工具可能需要特定的 Auth Mode，但在使用第三方兼容 API
+                                时，请确保认证方式选择了 API Key（Bearer Token）模式。 （此处可自行替换配图）</p>
+                            <h3 id="opencode-配置" tabindex="-1">OpenCode 配置 <a href="#opencode-config"></a> </h3>
+                            <p>点击顶部标签的 <strong>OpenCode</strong> 图标。添加并保存供应商后，点击卡片即可将其设为当前 Active 状态。</p>
+                            <ul>
+                                <li><strong>供应商名称：</strong> <code>Codex</code> （可自定义）</li>
+                                <li><strong>官网链接：</strong> <code>https://api.codex.surf</code> （选填）</li>
+                                <li><strong>API Key：</strong> 填入你在控制台获取的令牌</li>
+                                <li><strong>API 请求地址：</strong> <code>https://api.codex.surf/v1</code></li>
+                                <li><strong>模型名称：</strong> 例如 <code>gpt-5.4</code></li>
+                            </ul>
+                            <p><img src="https://docs.xcode.best/assets/15-opencode-provider.CWFBLEj-.png" alt=""></p>
+                            <p><img src="https://docs.xcode.best/assets/16-opencode-active.CJthCHO6.png" alt=""></p>
+                            <h3 id="openclaw-配置" tabindex="-1">OpenClaw 配置 <a href="#openclaw-config"></a> </h3>
+                            <p>INFO</p>
+                            <p>点击顶部标签的 <strong>OpenClaw</strong> 图标。OpenClaw 支持 Env、Tools 和 AgentsDefaults
+                                编辑面板，你可以根据自己的需要进一步微调。 （此处可自行替换配图）</p>
+                            <hr>
+                            <h2 id="注意事项" tabindex="-1">注意事项 <a href="#注意事项"></a> </h2>
+                            <ul>
+                                <li>请确保填写的请求地址结尾**不要带多余的斜杠 <strong><code>/</code></strong> 或 **<code>/v1</code>，CC
+                                    Switch 和底层命令行工具会自动处理路径拼接。</li>
+                                <li>每次在 CC Switch 中点击切换供应商后，你需要重启当前正在运行的命令行终端会话，让新的配置生效。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                <hr style="margin: 4rem 0; border: 0; border-top: 1px solid rgba(0,0,0,0.1);">
+                <section id="openclaw">
+                    <div style="position:relative;" class="vp-doc _openclaw" data-v-39a288b8>
+                        <div>
+                            <h1 id="🦞-openclaw-配置-codex-surf-教程" tabindex="-1">🦞 OpenClaw 配置 Codex.surf 教程 </h1>
+                            <p>OpenClaw 是一个开源（MIT 许可）的自托管网关，可将 WhatsApp、Telegram、Discord、iMessage 等聊天应用连接到 AI
+                                编码代理，支持多代理路由、工具使用和会话记忆。更多信息请参考 <a href="https://openclaw.ai/" target="_blank"
+                                    rel="noreferrer">OpenClaw 官网</a>。本教程将指导你如何在 OpenClaw 中安装并配置 Codex.surf API。</p>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">快速导航</p>
+                                    <ul>
+                                        <li><a href="#步骤-1-安装-openclaw">步骤 1：安装 OpenClaw</a></li>
+                                        <li><a href="#步骤-2-获取-api-密钥">步骤 2：获取 API 密钥</a></li>
+                                        <li><a href="#步骤-3-配置-openclaw">步骤 3：配置 OpenClaw</a></li>
+                                        <li><a href="#步骤-4-启动并验证">步骤 4：启动并验证</a></li>
+                                        <li><a href="#步骤-5-对接-qq-可选">步骤 5：对接 QQ（可选）</a></li>
+                                        <li><a href="#步骤-6-对接飞书-可选">步骤 6：对接飞书（可选）</a></li>
+                                        <li><a href="#附录-配置字段说明">附录：配置字段说明</a></li>
+                                    </ul>
+                            </div>
+                            <hr>
+                            <h2 id="步骤-1-安装-openclaw" tabindex="-1">步骤 1：安装 OpenClaw </h2>
+                            <div class="info custom-block">
+                                <h4 style="margin-top:0;">前置要求</p>
+                                    <p>需要 Node.js 22 或更高版本。验证方式：<code>node --version</code></p>
+                            </div>
+                            <h3 id="🍎-macos-🐧-linux" tabindex="-1">🍎 macOS / 🐧 Linux </h3>
+                            <p><strong>方法一：官方安装脚本（推荐）</strong></p>
+                            <p>自动检测环境并安装所有依赖：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">curl</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -fsSL</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> https://openclaw.ai/install.sh</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> |</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> bash</span></span></code></pre>
+                            </div>
+                            <p><strong>方法二：npm</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> openclaw@latest</span></span></code></pre>
+                            </div>
+                            <p><strong>方法三：pnpm</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> add</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> openclaw@latest</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> approve-builds</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span></span></code></pre>
+                            </div>
+                            <h3 id="⊞-windows" tabindex="-1">⊞ Windows </h3>
+                            <p><strong>方法一：PowerShell 安装脚本（推荐）</strong></p>
+                            <div class="language-powershell vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">powershell</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">iwr </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">-</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">useb https:</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">//</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">openclaw.ai</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">/</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">install.ps1 </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">|</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> iex</span></span></code></pre>
+                            </div>
+                            <p><strong>方法二：npm（CMD / PowerShell 均可）</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">npm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> openclaw@latest</span></span></code></pre>
+                            </div>
+                            <p><strong>方法三：pnpm</strong></p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> add</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> openclaw@latest</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">pnpm</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> approve-builds</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> -g</span></span></code></pre>
+                            </div>
+                            <h3 id="初始化" tabindex="-1">初始化 </h3>
+                            <p>安装完成后，运行初始化向导：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> onboard</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --install-daemon</span></span></code></pre>
+                            </div>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">提示</p>
+                                    <p>更多安装方式（Docker、从源码构建等）请参考 <a href="https://docs.openclaw.ai/install"
+                                            target="_blank" rel="noreferrer">OpenClaw 官方文档</a>。</p>
+                            </div>
+                            <hr>
+                            <h2 id="步骤-2-获取-api-密钥" tabindex="-1">步骤 2：获取 API 密钥 </h2>
+                            <p>访问 <a href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf
+                                    控制台</a>，创建一个新的令牌：</p>
+                            <ul>
+                                <li>点击「添加令牌」</li>
+                                <li>名称：随便填写，方便自己区分即可</li>
+                                <li><strong>令牌分组：根据实际需要选择，分组有详细描述</strong>（必填项，不能留空）</li>
+                                <li>额度建议：设置为无限额度</li>
+                            </ul>
+                            <p>创建成功后，复制令牌备用。</p>
+                            <hr>
+                            <h2 id="步骤-3-配置-openclaw" tabindex="-1">步骤 3：配置 OpenClaw </h2>
+                            <h3 id="配置文件位置" tabindex="-1">配置文件位置 </h3>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>系统</th>
+                                        <th>路径</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>macOS / Linux</td>
+                                        <td><code>~/.openclaw/openclaw.json</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Windows</td>
+                                        <td><code>%USERPROFILE%\.openclaw\openclaw.json</code></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="conversion-box"
+                                style="border-left-color: #f59e0b; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">注意</p>
+                                    <p>如果文件不存在，可以手动创建。首次运行 <code>openclaw doctor</code> 也会自动生成默认配置。</p>
+                            </div>
+                            <h3 id="codex-surf-配置示例" tabindex="-1">Codex.surf 配置示例 </h3>
+                            <p>在 <code>openclaw.json</code> 中添加或修改以下内容：</p>
+                            <div class="language-json vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">json</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;meta&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;lastTouchedVersion&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;2026.2.3-1&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;lastTouchedAt&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;2026-02-06T10:08:26.053Z&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;wizard&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;lastRunAt&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;2026-02-06T10:06:14.214Z&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;lastRunVersion&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;2026.2.3-1&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;lastRunCommand&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;doctor&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;lastRunMode&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;local&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;agents&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;defaults&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;compaction&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;mode&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;safeguard&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">      },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;maxConcurrent&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">4</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;subagents&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;maxConcurrent&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">8</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">      },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;model&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;primary&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;codex-surf-claude/claude-opus-4-6&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">      }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;models&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;mode&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;merge&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;providers&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;codex-surf-claude&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;baseUrl&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;https://codex.surf&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;apiKey&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;你的API密钥&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;api&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;anthropic-messages&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;headers&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">          &quot;User-Agent&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;claude-cli/2.0.76 (external, cli)&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">          &quot;Authorization&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Bearer 你的API密钥&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;models&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: [</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">          {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">            &quot;id&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;claude-opus-4-6&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">            &quot;name&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;claude-opus-4-6&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">          }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        ]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">      },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;codex-surf-codex&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;baseUrl&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;https://api.codex.surf/v1&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;apiKey&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;你的API密钥&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;api&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;openai-completions&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;headers&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">          &quot;User-Agent&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;codex_cli_rs/0.77.0 (Windows 10.0.26100; x86_64) WindowsTerminal&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">          &quot;Authorization&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;Bearer 你的API密钥&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">        &quot;models&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: [</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">          {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">            &quot;id&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;gpt-5.2-codex&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">            &quot;name&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;gpt-5.2-codex&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">          }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">        ]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">      }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;messages&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;ackReactionScope&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;group-mentions&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;commands&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;native&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;auto&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;nativeSkills&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;auto&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;gateway&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;auth&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;mode&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;token&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">      &quot;token&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;保留默认值即可&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    },</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;mode&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: </span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">&quot;local&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre>
+                            </div>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">重要提示</p>
+                                    <ul>
+                                        <li>请将 <code>&quot;apiKey&quot;</code> 和
+                                            <code>&quot;headers.Authorization&quot;</code> 中的密钥替换为你在 <a
+                                                href="https://codex.surf/" target="_blank" rel="noreferrer">Codex.surf
+                                                控制台</a> 生成的 API 密钥 <code>Authorization</code> 的格式为
+                                            <code>Bearer 你的API密钥</code>（注意 Bearer 后有一个空格）</li>
+                                        <li><code>&quot;gateway.auth.token&quot;</code> 保留默认生成的值即可，无需修改</li>
+                                        <li><code>&quot;agents.defaults.model.primary&quot;</code> 用于设置默认使用的 AI 模型 格式为
+                                            <code>provider名称/模型ID</code>，例如：
+                                            <code>codex-surf-claude/claude-opus-4-6</code> 或
+                                            <code>codex-surf-codex/gpt-5.2-codex</code></li>
+                                    </ul>
+                            </div>
+                            <h3 id="关键配置说明" tabindex="-1">关键配置说明 </h3>
+                            <p><strong><code>models.providers.codex-surf-claude</code></strong> — Claude 模型配置：</p>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>字段</th>
+                                        <th>值</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>baseUrl</code></td>
+                                        <td><code>https://codex.surf</code></td>
+                                        <td>Codex.surf API 地址</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>apiKey</code></td>
+                                        <td>你的 API 密钥</td>
+                                        <td>从控制台获取</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>api</code></td>
+                                        <td><code>anthropic-messages</code></td>
+                                        <td>Anthropic 协议，用于 Claude 系列模型</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>headers</code></td>
+                                        <td>自定义请求头</td>
+                                        <td>详见下方说明</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models</code></td>
+                                        <td>模型列表</td>
+                                        <td>需要使用的模型</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p><strong><code>models.providers.codex-surf-codex</code></strong> — Codex 模型配置：</p>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>字段</th>
+                                        <th>值</th>
+                                        <th>说明</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>baseUrl</code></td>
+                                        <td><code>https://codex.surf</code></td>
+                                        <td>Codex.surf API 地址</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>apiKey</code></td>
+                                        <td>你的 API 密钥</td>
+                                        <td>从控制台获取</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>api</code></td>
+                                        <td><code>openai-completions</code></td>
+                                        <td>OpenAI 协议，用于 GPT/Codex 系列模型</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>headers</code></td>
+                                        <td>自定义请求头</td>
+                                        <td>详见下方说明</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models</code></td>
+                                        <td>模型列表</td>
+                                        <td>需要使用的模型</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">切换默认模型</p>
+                                    <p>修改 <code>agents.defaults.model.primary</code> 即可切换默认模型：</p>
+                                    <ul>
+                                        <li>使用 Claude：<code>&quot;codex-surf-claude/claude-opus-4-6&quot;</code></li>
+                                        <li>使用 Codex：<code>&quot;codex-surf-codex/gpt-5.2-codex&quot;</code></li>
+                                    </ul>
+                                    <p>格式为 <code>provider名称/模型ID</code>。</p>
+                            </div>
+                            <div class="conversion-box"
+                                style="border-left-color: #f59e0b; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">headers 配置说明</p>
+                                    <p><code>headers</code> 用于自定义 HTTP 请求头：</p>
+                                    <ul>
+                                        <li><code>User-Agent</code> — 客户端标识，Claude 模型使用
+                                            <code>claude-cli/...</code>，Codex 模型使用 <code>codex_cli_rs/...</code></li>
+                                        <li><code>Authorization</code> — 认证头，值为 <code>Bearer 你的API密钥</code>（与
+                                            <code>apiKey</code> 填同一个密钥）</li>
+                                    </ul>
+                            </div>
+                            <p><strong>可用模型</strong>：访问 <a href="https://codex.surf/" target="_blank"
+                                    rel="noreferrer">Codex.surf 模型广场</a> 查看所有可用模型。如需添加更多模型，在对应 provider 的
+                                <code>models</code> 数组中追加即可。</p>
+                            <hr>
+                            <h2 id="步骤-4-启动并验证" tabindex="-1">步骤 4：启动并验证 </h2>
+                            <p>配置完成后，先运行诊断命令检查配置是否正确：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> doctor</span></span></code></pre>
+                            </div>
+                            <p>确认无误后，重启 gateway 使配置生效：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> gateway</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> restart</span></span></code></pre>
+                            </div>
+                            <p>然后启动 TUI 界面验证配置是否正常：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> tui</span></span></code></pre>
+                            </div>
+                            <p>如果能正常对话，说明配置成功。</p>
+                            <hr>
+                            <h2 id="步骤-5-对接-qq-可选" tabindex="-1">步骤 5：对接 QQ（可选） </h2>
+                            <p>如果你希望通过 QQ 与 OpenClaw 交互，可以按照以下步骤完成对接。OpenClaw 官方提供了 QQ 机器人接入页面，整个流程非常简单。</p>
+                            <h3 id="_5-1-创建-qq-机器人" tabindex="-1">5.1 创建 QQ 机器人 </h3>
+                            <ol>
+                                <li>访问 <a href="https://q.qq.com/qqbot/openclaw/index.html" target="_blank"
+                                        rel="noreferrer">OpenClaw QQ 机器人接入页面</a>，使用 QQ 账号登录</li>
+                                <li>点击页面中的「创建机器人」按钮</li>
+                            </ol>
+                            <p><img src="https://docs.xcode.best/assets/01-%E5%88%9B%E5%BB%BA%E6%9C%BA%E5%99%A8%E4%BA%BA.sWFWtXec.webp"
+                                    alt="创建机器人"></p>
+                            <h3 id="_5-2-复制机器人凭证" tabindex="-1">5.2 复制机器人凭证 </h3>
+                            <p>机器人创建成功后，页面会显示以下信息：</p>
+                            <ul>
+                                <li><strong>AppID</strong> — 机器人的唯一标识</li>
+                                <li><strong>AppSecret</strong> — 机器人的密钥</li>
+                            </ul>
+                            <p>同时页面会展示 <strong>OpenClaw 原生接入流程</strong>，包含需要执行的命令。</p>
+                            <p><img src="https://docs.xcode.best/assets/02-%E5%A4%8D%E5%88%B6%E7%9B%B8%E5%85%B3%E4%BF%A1%E6%81%AF.BUu7ZYxg.webp"
+                                    alt="复制相关信息"></p>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">安全提示</p>
+                                    <p>AppSecret 是敏感信息，且不支持明文保存、二次查看。请在创建时立即复制并妥善保管。</p>
+                            </div>
+                            <h3 id="_5-3-在-openclaw-侧完成-qq-配置" tabindex="-1">5.3 在 OpenClaw 侧完成 QQ 配置 </h3>
+                            <p>根据页面提示，依次执行以下命令：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 1. 安装 OpenClaw 社区 QQBot 插件</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> plugins</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> @sliverp/qqbot@latest</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 2. 配置绑定当前 QQ 机器人（token 值从页面复制）</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> channels</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> add</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --channel</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> qqbot</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --token</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;你的Token&quot;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 3. 重启网关使配置生效</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> gateway</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> restart</span></span></code></pre>
+                            </div>
+                            <h3 id="_5-4-两种安装方式" tabindex="-1">5.4 两种安装方式 </h3>
+                            <p>你可以选择以下任一方式执行上述命令：</p>
+                            <p><strong>方式一：通过 OpenClaw Gateway Dashboard 的聊天界面</strong></p>
+                            <p>直接在 OpenClaw 的 Web 管理界面中，将页面提供的信息和命令发送给 OpenClaw，它会自动执行安装和配置。</p>
+                            <p><img src="https://docs.xcode.best/assets/03-%E5%8F%91%E9%80%81qqbot%E4%BF%A1%E6%81%AF%E7%BB%99%E9%BE%99%E8%99%BE%E5%AE%89%E8%A3%85.BO_LRDDF.webp"
+                                    alt="通过 Dashboard 聊天安装"></p>
+                            <p><strong>方式二：通过已接入的 IM 渠道发送</strong></p>
+                            <p>如果你已经有其他 IM 渠道（如 Telegram、飞书等）连接到 OpenClaw，也可以直接通过该渠道将信息发送给 OpenClaw 完成安装。</p>
+                            <p><img src="https://docs.xcode.best/assets/04-%E9%80%9A%E8%BF%87IM%E5%8F%91%E9%80%81qqbot%E4%BF%A1%E6%81%AF%E5%AE%89%E8%A3%85.COB4USkJ.webp"
+                                    alt="通过 IM 发送安装"></p>
+                            <h3 id="_5-5-测试验证" tabindex="-1">5.5 测试验证 </h3>
+                            <p>配置完成后，即可在 QQ 中测试：</p>
+                            <ol>
+                                <li>在 QQ 中找到你创建的机器人</li>
+                                <li>发送一条消息，确认机器人能正常响应</li>
+                                <li>支持 Markdown、图片、语音、文件等多媒体消息收发</li>
+                                <li>手机端 QQ、桌面端 QQ 均可使用</li>
+                            </ol>
+                            <h3 id="qq-对接常见问题" tabindex="-1">QQ 对接常见问题 </h3>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>问题</th>
+                                        <th>可能原因</th>
+                                        <th>解决方案</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>机器人无响应</td>
+                                        <td>网关未启动或 token 配置错误</td>
+                                        <td>运行 <code>openclaw status</code> 检查状态，确认 token 正确</td>
+                                    </tr>
+                                    <tr>
+                                        <td>插件安装失败</td>
+                                        <td>网络问题或版本不兼容</td>
+                                        <td>检查网络连接，尝试 <code>openclaw plugins install @sliverp/qqbot@latest</code> 重新安装
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>消息发送失败</td>
+                                        <td>QQ 机器人权限不足</td>
+                                        <td>检查 QQ 开放平台上机器人的权限配置</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <hr>
+                            <h2 id="步骤-6-对接飞书-可选" tabindex="-1">步骤 6：对接飞书（可选） </h2>
+                            <p>如果你希望通过飞书与 OpenClaw 交互，可以按照以下步骤完成对接。</p>
+                            <h3 id="_6-1-登录飞书开放平台" tabindex="-1">6.1 登录飞书开放平台 </h3>
+                            <ol>
+                                <li>访问 <a href="https://open.feishu.cn/" target="_blank"
+                                        rel="noreferrer">飞书开放平台</a>，使用飞书账号登录</li>
+                                <li>需要企业管理员或具备开发者权限的账号</li>
+                                <li>进入「开发者后台」</li>
+                            </ol>
+                            <h3 id="_6-2-创建企业自建应用" tabindex="-1">6.2 创建企业自建应用 </h3>
+                            <ol>
+                                <li>点击「创建企业自建应用」</li>
+                                <li>填写应用信息： <ul>
+                                        <li>应用名称（如 <code>OpenClaw 助手</code>）</li>
+                                        <li>应用描述（如 <code>基于 OpenClaw 的 AI 智能助手</code>）</li>
+                                        <li>应用图标（上传一张辨识度高的图标）</li>
+                                    </ul>
+                                </li>
+                                <li>确认创建</li>
+                            </ol>
+                            <h3 id="_6-3-获取应用凭证" tabindex="-1">6.3 获取应用凭证 </h3>
+                            <ol>
+                                <li>进入刚创建的应用，点击左侧菜单「凭证与基础信息」</li>
+                                <li>记录以下两个值（后续配置 OpenClaw 时需要）： <ul>
+                                        <li><strong>App ID</strong>（格式类似 <code>cli_a90f701cf9f99bd8</code>）</li>
+                                        <li><strong>App Secret</strong></li>
+                                    </ul>
+                                </li>
+                            </ol>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">安全提示</p>
+                                    <p>App Secret 是敏感信息，请妥善保管，不要泄露或提交到代码仓库。</p>
+                            </div>
+                            <h3 id="_6-4-添加机器人能力" tabindex="-1">6.4 添加机器人能力 </h3>
+                            <ol>
+                                <li>在左侧菜单找到「应用能力」→「机器人」</li>
+                                <li>点击开启机器人能力</li>
+                                <li>可自定义机器人的名称和描述</li>
+                            </ol>
+                            <h3 id="_6-5-配置应用权限" tabindex="-1">6.5 配置应用权限 </h3>
+                            <p>有两种方式，任选其一。</p>
+                            <h4 id="方式一-json-批量导入-推荐" tabindex="-1">方式一：JSON 批量导入（推荐） </h4>
+                            <ol>
+                                <li>在左侧菜单点击「权限管理」</li>
+                                <li>找到页面右上角的「批量导入」按钮</li>
+                                <li>粘贴以下 JSON 并确认导入：</li>
+                            </ol>
+                            <div class="language-json vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">json</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">{</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">  &quot;scopes&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: {</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;tenant&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: [</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;aily:file:read&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;aily:file:write&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;application:application.app_message_stats.overview:readonly&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;application:application:self_manage&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;application:bot.menu:write&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;contact:user.employee_id:readonly&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;corehr:file:download&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;event:ip_list&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:chat.access_event.bot_p2p_chat:read&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:chat.members:bot_access&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:message&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:message.group_at_msg:readonly&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:message.p2p_msg:readonly&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:message:readonly&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:message:send_as_bot&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;cardkit:card:write&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:resource&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    ],</span></span>
+<span class="line"><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;">    &quot;user&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">: [</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;aily:file:read&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;aily:file:write&quot;</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">,</span></span>
+<span class="line"><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;">      &quot;im:chat.access_event.bot_p2p_chat:read&quot;</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">    ]</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  }</span></span>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">}</span></span></code></pre>
+                            </div>
+                            <ol>
+                                <li>导入后，检查权限列表，如果有「申请」按钮的权限，点击逐一申请</li>
+                                <li>企业自建应用的权限通常会自动通过审批</li>
+                            </ol>
+                            <h4 id="方式二-手动逐个开通" tabindex="-1">方式二：手动逐个开通 </h4>
+                            <p>在「权限管理」中搜索并开通以下权限：</p>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>权限标识</th>
+                                        <th>说明</th>
+                                        <th>必要性</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>im:message</code></td>
+                                        <td>消息基础权限</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:message.p2p_msg:readonly</code></td>
+                                        <td>接收用户私聊消息</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:message.group_at_msg:readonly</code></td>
+                                        <td>接收群聊中 @机器人 的消息</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:message:send_as_bot</code></td>
+                                        <td>以机器人身份发送消息</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:message:readonly</code></td>
+                                        <td>获取历史消息</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:resource</code></td>
+                                        <td>消息中的资源（图片/文件）读取</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:chat.access_event.bot_p2p_chat:read</code></td>
+                                        <td>机器人单聊事件访问</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>im:chat.members:bot_access</code></td>
+                                        <td>获取机器人所在群的成员信息</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>cardkit:card:write</code></td>
+                                        <td>发送交互卡片消息</td>
+                                        <td>必须</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>application:application.app_message_stats.overview:readonly</code>
+                                        </td>
+                                        <td>应用消息统计</td>
+                                        <td>推荐</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>application:application:self_manage</code></td>
+                                        <td>应用自管理</td>
+                                        <td>推荐</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>application:bot.menu:write</code></td>
+                                        <td>配置机器人菜单</td>
+                                        <td>推荐</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>contact:user.employee_id:readonly</code></td>
+                                        <td>读取用户工号</td>
+                                        <td>推荐</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>aily:file:read</code></td>
+                                        <td>AI 文件读取</td>
+                                        <td>推荐</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>aily:file:write</code></td>
+                                        <td>AI 文件写入</td>
+                                        <td>推荐</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>corehr:file:download</code></td>
+                                        <td>核心人事文件下载</td>
+                                        <td>可选</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>event:ip_list</code></td>
+                                        <td>事件 IP 白名单</td>
+                                        <td>可选</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <h3 id="_6-6-配置事件订阅" tabindex="-1">6.6 配置事件订阅 </h3>
+                            <ol>
+                                <li>在左侧菜单找到「事件与回调」→「事件配置」</li>
+                                <li>订阅方式选择「使用长连接接收事件」（推荐）</li>
+                                <li>点击「添加事件」，搜索并添加 <code>im.message.receive_v1</code>（即「接收消息 v2.0」）</li>
+                            </ol>
+                            <div class="conversion-box"
+                                style="border-left-color: #10b981; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">为什么推荐长连接模式？</p>
+                                    <ul>
+                                        <li>不需要公网 IP、域名或内网穿透工具，本地即可调试</li>
+                                        <li>SDK 自动处理加密传输和鉴权，无需手动解密或验签</li>
+                                        <li>集成成本低，几分钟就能跑通</li>
+                                    </ul>
+                            </div>
+                            <div class="conversion-box"
+                                style="border-left-color: #f59e0b; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">长连接限制</p>
+                                    <ul>
+                                        <li>仅支持企业自建应用，商店应用不可用</li>
+                                        <li>消息必须在 3 秒内处理完成，否则触发超时重推</li>
+                                        <li>单应用最多 50 个连接</li>
+                                        <li>多客户端部署时为集群模式（非广播），只有一个客户端收到消息</li>
+                                    </ul>
+                            </div>
+                            <h3 id="_6-7-创建版本并发布" tabindex="-1">6.7 创建版本并发布 </h3>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">必须先发布才能使用</p>
+                                    <p>飞书自建应用的权限和事件订阅配置，必须创建版本并发布后才会生效。未发布的应用在飞书客户端中搜索不到，也无法正常收发消息。长连接配置也需要应用发布后才能保存，否则会报错。
+                                    </p>
+                            </div>
+                            <ol>
+                                <li>进入飞书开放平台「版本管理与发布」</li>
+                                <li>点击「创建版本」，填写版本说明（如 <code>OpenClaw AI 助手 v1.0</code>）</li>
+                                <li>设置应用的「可用范围」（至少添加自己或一个测试群）</li>
+                                <li>点击「保存」→「申请发布」</li>
+                                <li>等待企业管理员审核通过（企业自建应用通常审核较快）</li>
+                            </ol>
+                            <div class="conversion-box"
+                                style="border-left-color: #f59e0b; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">注意</p>
+                                    <p>每次权限变更或事件订阅修改后，都需要创建新版本并重新发布，否则变更不会生效。建议在所有配置完成后统一发布，减少反复提审。</p>
+                            </div>
+                            <h3 id="_6-8-在-openclaw-侧完成飞书配置" tabindex="-1">6.8 在 OpenClaw 侧完成飞书配置 </h3>
+                            <p>飞书应用发布成功后，再配置 OpenClaw 侧并启动网关：</p>
+                            <div class="language-bash vp-adaptive-theme"><button title="Copy Code"
+                                    class="copy"></button><span class="lang">bash</span>
+                                <pre class="shiki shiki-themes github-light github-dark vp-code"
+                                    tabindex="0"><code><span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 1. 安装飞书插件</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> plugins</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> install</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> feishu-openclaw</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 2. 启用飞书通道并配置凭证</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> config</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> set</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> channels.feishu.enabled</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> true</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> --json</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> config</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> set</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> channels.feishu.appId</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;你的AppID&quot;</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> config</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> set</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> channels.feishu.appSecret</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> &quot;你的AppSecret&quot;</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 3. 重启网关使配置生效</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> gateway</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> restart</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 4. 验证状态</span></span>
+<span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> status</span></span>
+<span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;"># 预期输出：Feishu | ON | OK | configured</span></span></code></pre>
+                            </div>
+                            <div class="conversion-box"
+                                style="border-left-color: #ef4444; background: rgba(255,255,255,0.6);">
+                                <h4 style="margin-top:0;">配置顺序很重要</p>
+                                    <p>正确顺序：先在飞书开放平台完成所有配置并发布应用 → 再配置 OpenClaw 并启动网关。飞书在建立 WebSocket
+                                        长连接时会验证应用凭证和发布状态，如果应用未发布或网关未启动，长连接将无法建立。</p>
+                            </div>
+                            <h3 id="_6-9-测试验证" tabindex="-1">6.9 测试验证 </h3>
+                            <p>发布审核通过且 OpenClaw 网关启动后，即可开始测试：</p>
+                            <ol>
+                                <li>在飞书客户端搜索你的机器人名称，或将其添加到一个测试群</li>
+                                <li>私聊机器人发送一条消息，确认能正常响应</li>
+                                <li>在群聊中 @机器人 发送消息，确认群聊场景也正常</li>
+                                <li>测试图片、文件等富媒体消息的收发（如果需要）</li>
+                            </ol>
+                            <h3 id="飞书对接常见问题" tabindex="-1">飞书对接常见问题 </h3>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>问题</th>
+                                        <th>可能原因</th>
+                                        <th>解决方案</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>机器人无响应</td>
+                                        <td>网关未启动或凭证错误</td>
+                                        <td>运行 <code>openclaw status</code> 检查状态，确认 App ID / Secret 正确</td>
+                                    </tr>
+                                    <tr>
+                                        <td>群聊收不到消息</td>
+                                        <td>缺少 <code>im:message.group_at_msg:readonly</code> 权限</td>
+                                        <td>在权限管理中补充开通，重新发布版本</td>
+                                    </tr>
+                                    <tr>
+                                        <td>消息超时重复推送</td>
+                                        <td>处理时间超过 3 秒</td>
+                                        <td>优化处理逻辑，或检查 LLM API 响应速度</td>
+                                    </tr>
+                                    <tr>
+                                        <td>权限变更不生效</td>
+                                        <td>未重新发布应用版本</td>
+                                        <td>创建新版本并申请发布</td>
+                                    </tr>
+                                    <tr>
+                                        <td>长连接建立失败</td>
+                                        <td>应用未发布或网关未启动</td>
+                                        <td>确认飞书应用已发布且审核通过，然后确认 OpenClaw 网关已启动（<code>openclaw status</code>）</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <hr>
+                            <h2 id="附录-配置字段说明" tabindex="-1">附录：配置字段说明 </h2>
+                            <table tabindex="0">
+                                <thead>
+                                    <tr>
+                                        <th>字段</th>
+                                        <th>说明</th>
+                                        <th>是否必填</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>agents.defaults.model.primary</code></td>
+                                        <td>默认使用的模型，格式：<code>provider/model-id</code></td>
+                                        <td>是</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>agents.defaults.maxConcurrent</code></td>
+                                        <td>最大并发 agent 数</td>
+                                        <td>否（默认 4）</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>agents.defaults.subagents.maxConcurrent</code></td>
+                                        <td>最大并发子 agent 数</td>
+                                        <td>否（默认 8）</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>agents.defaults.compaction.mode</code></td>
+                                        <td>上下文压缩模式</td>
+                                        <td>否（默认 safeguard）</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models.mode</code></td>
+                                        <td>模型合并模式</td>
+                                        <td>否（默认 merge）</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models.providers.&lt;name&gt;.baseUrl</code></td>
+                                        <td>API 服务地址</td>
+                                        <td>是</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models.providers.&lt;name&gt;.apiKey</code></td>
+                                        <td>API 密钥</td>
+                                        <td>是</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models.providers.&lt;name&gt;.api</code></td>
+                                        <td>API 协议类型</td>
+                                        <td>是</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models.providers.&lt;name&gt;.headers</code></td>
+                                        <td>自定义请求头</td>
+                                        <td>是</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>models.providers.&lt;name&gt;.models</code></td>
+                                        <td>可用模型列表</td>
+                                        <td>是</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>gateway.mode</code></td>
+                                        <td>gateway 运行模式</td>
+                                        <td>否（默认 local）</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>gateway.auth.mode</code></td>
+                                        <td>gateway 鉴权模式</td>
+                                        <td>否</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>gateway.auth.token</code></td>
+                                        <td>gateway 鉴权 token</td>
+                                        <td>否</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                <hr style="margin: 4rem 0; border: 0; border-top: 1px solid rgba(0,0,0,0.1);">
+            </div>
+        </main>
+
+        <!-- Interactive Scripts -->
+        <script>
+            // Copy Code Functionality
+            function copyCode(button) {
+                const wrapper = button.closest('.code-block-wrapper');
+                const code = wrapper.querySelector('code').innerText;
+
+                navigator.clipboard.writeText(code).then(() => {
+                    const originalText = button.innerText;
+                    button.innerText = '已复制!';
+                    button.style.color = '#10b981';
+                    setTimeout(() => {
+                        button.innerText = originalText;
+                        button.style.color = '';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Copy failed: ', err);
+                });
+            }
+
+            // VitePress Copy Buttons Initialization
+            document.querySelectorAll('.vp-doc .copy').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const wrapper = this.closest('div[class*="language-"]');
+                    const code = wrapper.querySelector('code').innerText;
+
+                    navigator.clipboard.writeText(code).then(() => {
+                        this.classList.add('copied');
+                        setTimeout(() => {
+                            this.classList.remove('copied');
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Copy failed: ', err);
+                    });
+                });
+            });
+
+            // Active Link Highlight Setup
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.sidebar .nav-group .nav-link:not([target="_blank"])');
+
+            window.addEventListener('scroll', () => {
+                let current = '';
+                const scrollPos = window.scrollY + 100;
+
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${current}`) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        </script>
+    </div>
+</body>
+
+</html>
