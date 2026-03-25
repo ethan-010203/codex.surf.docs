@@ -1,0 +1,21 @@
+# dependencies
+node_modules
+.pnpm-debug.log*
+
+# next.js
+.next/
+.next-dev/
+out/
+
+# opennext
+.open-next/
+
+# wrangler
+.wrangler/
+
+# env
+.env*.local
+
+# misc
+.DS_Store
+*.pem
