@@ -62,6 +62,7 @@ interface DashboardResponse {
     totalPages: number
   }
   message?: string
+  warning?: string
 }
 
 interface LoginResponse {
@@ -318,7 +319,7 @@ export default function AdminPage() {
         })
         setTotalPages(data.pagination?.totalPages ?? 1)
         setTotalRecords(data.pagination?.total ?? 0)
-        setFlashMessage('')
+        setFlashMessage(data.warning ?? '')
       } catch (error) {
         setFlashMessage(error instanceof Error ? error.message : '加载后台数据失败。')
       } finally {

@@ -35,11 +35,26 @@ export async function GET(request: Request) {
     const page = parsePositiveInt(searchParams.get('page'), 1)
     const pageSize = parsePositiveInt(searchParams.get('pageSize'), 25)
 
-    const [summary, codeList, recentActivations, subscriptionPlans] = await Promise.all([
+    const [summary, codeList, recentActivations, subscriptionPlansResult] = await Promise.all([
       getCodeSummary(),
       listCodes({ status, search, page, pageSize }),
       listRecentActivations(8),
-      getAdminSubscriptionPlans(user),
+      getAdminSubscriptionPlans(user)
+        .then((plans) => ({
+          plans,
+          warning: '',
+        }))
+        .catch((error) => {
+          console.error('Load subscription plans error:', error)
+
+          return {
+            plans: [],
+            warning:
+              error instanceof Error
+                ? `套餐列表加载失败：${error.message}`
+                : '套餐列表加载失败，请检查 newapi 订阅套餐接口是否可用。',
+          }
+        }),
     ])
 
     return NextResponse.json({
@@ -47,7 +62,8 @@ export async function GET(request: Request) {
       user,
       summary,
       recentActivations,
-      subscriptionPlans,
+      subscriptionPlans: subscriptionPlansResult.plans,
+      warning: subscriptionPlansResult.warning || undefined,
       codes: codeList.codes,
       pagination: {
         page,

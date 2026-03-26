@@ -29,6 +29,7 @@ npm run dev
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 JWT_SECRET=replace-with-a-long-random-string
+NEWAPI_BASE_URL=https://your-newapi-domain.com
 ```
 
 推荐额外配置：
@@ -37,7 +38,23 @@ JWT_SECRET=replace-with-a-long-random-string
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 CODEX_SURF_ADMIN_USERNAME=admin
 CODEX_SURF_ADMIN_PASSWORD=change-me
+NEWAPI_ADMIN_USERNAME=your-newapi-admin-username
+NEWAPI_ADMIN_PASSWORD=your-newapi-admin-password
 ```
+
+也可以使用服务端令牌方式代替 `NEWAPI_ADMIN_USERNAME / NEWAPI_ADMIN_PASSWORD`：
+
+```env
+NEWAPI_ADMIN_ACCESS_TOKEN=your-newapi-admin-access-token
+NEWAPI_ADMIN_USER_ID=your-newapi-admin-user-id
+```
+
+说明：
+
+- `NEWAPI_BASE_URL` 必须填写你正在运行的 `new-api` 主站地址，例如 `https://api.example.com`
+- 不要填写 GitHub 仓库地址，也不要填写当前 `codex_surf` 前端站点地址
+- 后台登录、套餐读取、激活后自动开通订阅都会请求这个 `new-api` 地址
+- Cloudflare Workers / Pages 部署时，需要在项目的 `Settings` -> `Variables and Secrets` 中配置这些环境变量，然后重新部署
 
 如果没有配置 `CODEX_SURF_ADMIN_USERNAME / CODEX_SURF_ADMIN_PASSWORD`，系统会尝试兼容：
 
