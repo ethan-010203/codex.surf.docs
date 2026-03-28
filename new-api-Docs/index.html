@@ -1212,6 +1212,7 @@
                                         <li><a href="#步骤-2-获取-api-密钥">步骤 2：获取 API 密钥</a></li>
                                         <li><a href="#步骤-3-配置-openclaw">步骤 3：配置 OpenClaw</a></li>
                                         <li><a href="#步骤-4-启动并验证">步骤 4：启动并验证</a></li>
+                                        <li><a href="#openclaw-常见问题">常见问题：403 被拦</a></li>
                                         <li><a href="#步骤-5-对接-qq-可选">步骤 5：对接 QQ（可选）</a></li>
                                         <li><a href="#步骤-6-对接飞书-可选">步骤 6：对接飞书（可选）</a></li>
                                         <li><a href="#附录-配置字段说明">附录：配置字段说明</a></li>
@@ -1535,6 +1536,39 @@
                                         tabindex="0"><code><span class="line"><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;">openclaw</span><span style="--shiki-light:#032F62;--shiki-dark:#9ECBFF;"> tui</span></span></code></pre>
                                 </div>
                                 <p>如果能正常对话，说明配置成功。</p>
+                                <h3 id="openclaw-常见问题" tabindex="-1">OpenClaw 常见问题 </h3>
+                                <table tabindex="0">
+                                    <thead>
+                                        <tr>
+                                            <th>问题</th>
+                                            <th>症状</th>
+                                            <th>原因</th>
+                                            <th>解决方案</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>provider 配好了，但 OpenClaw 发请求返回 <code>403 Your request was blocked</code></td>
+                                            <td>provider 配好了，<code>curl</code> 直接请求中转站 API 完全正常（200），但 OpenClaw 发出去就是 <code>403 Your request was blocked</code></td>
+                                            <td>OpenClaw 底层使用 <code>@anthropic-ai/sdk</code>，发请求时会带上官方 SDK 的 <code>User-Agent</code>，例如 <code>Anthropic/JS 0.73.0</code>，部分中转站会因此拦截</td>
+                                            <td>在 provider 配置里加 <code>headers</code> 字段覆盖 <code>User-Agent</code>，示例如下</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="language-json vp-adaptive-theme"><button title="Copy Code"
+                                        class="copy"></button><span class="lang">json</span>
+                                    <pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code>{
+  "my-relay": {
+    "baseUrl": "https://codex.surf",
+    "apiKey": "sk-your-api-key",
+    "api": "anthropic-messages",
+    "headers": {
+      "User-Agent": "Mozilla/5.0"
+    },
+    "models": [...]
+  }
+}</code></pre>
+                                </div>
                                 <hr>
                                 <h2 id="步骤-5-对接-qq-可选" tabindex="-1">步骤 5：对接 QQ（可选） </h2>
                                 <p>如果你希望通过 QQ 与 OpenClaw 交互，可以按照以下步骤完成对接。OpenClaw 官方提供了 QQ 机器人接入页面，整个流程非常简单。</p>
